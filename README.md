@@ -7,7 +7,7 @@ Incorporating uncertainty in cell type proportion estimates from bulk samples to
 Rscript UBD_refineW.R [file for bulk expression/DNA methylation] [file for BayesPrism output] [path for outputs] \
 ref_file=[reference file from signature matrix]
 ```
-- **file for bulk expression/DNA methylation:** Each row represent a phenotype (CpG site in DNA methylations), and the first three columns should be `probe`,`BP`,`CHR`, the remaining columns represent individuals. Column names are needed.
+- **file for bulk expression/DNA methylation:** This is the bulk expression/DNA methylation matrix. Each row represents an individual and each column represents one gene or one CpG site.
 ```
             gene1     gene2     gene3    gene4    gene5
 sample1  3.272629 1.9255926 1.4394065 2.229085 2.316632
@@ -18,9 +18,9 @@ sample5  2.689748 0.9205953 2.4768426 2.640798 2.695839
 sample6  2.808944 1.1204922 2.3739149 2.719597 3.417008
 ...
 ```
-- **file for BayesPrism output:** The CpG to be tested should be specified, for example, `cg08730728`. (Chu, T., Wang, Z., Pe’er, D. et al. Cell type and gene expression deconvolution with BayesPrism enables Bayesian integrative analysis across bulk and single-cell RNA sequencing in oncology. *Nat Cancer* 3, 505–517 (2022). https://doi.org/10.1038/s43018-022-00356-3)
+- **file for BayesPrism output:** This is the direct output from BayesPrism, which contains information on sample-level cell type proportion estimates and uncertainty (Chu, T., Wang, Z., Pe’er, D. et al. Cell type and gene expression deconvolution with BayesPrism enables Bayesian integrative analysis across bulk and single-cell RNA sequencing in oncology. *Nat Cancer* 3, 505–517 (2022). https://doi.org/10.1038/s43018-022-00356-3)
 - **path for outputs:** For example, `/Mypath/result`.
-- **Optional arguments:** `scale_MH` specifies the xxx. The default value is `scale_MH=200`. `ref_file` specifies xxx. We strongly recommend to provide xxx. If no reference information is available, we will estimate it within the UBD algorithm. In `ref_file`, each row...
+- **Optional arguments:** `scale_MH` specifies the proposal scaling in Metropolis-Hastings (MH). It adjusts the size (scale) of the proposal distribution's steps and also controls the acceptance rate. The default value is `scale_MH=200`. `ref_file` specifies xxx. We strongly recommend to provide xxx. If no reference information is available, we will estimate it within the UBD algorithm. In `ref_file`, each row corresponds to one gene/CpG site and each column corresponds to one cell type.
 ```
             CT1      CT2      CT3
 gene1 3.4560016 2.672303 3.360823
