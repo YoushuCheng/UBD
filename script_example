@@ -1,0 +1,9 @@
+Using the test data (bulkM.RData, bp.res.RData, alpha_hat.RData) in the inputs_example folder, a typical run is like:
+
+
+Rscript UBD_refineW.R bulkM.RData bp.res.RData /Mypath/results \
+ref_file=alpha_hat.RData
+
+
+
+The results are saved at /Mypath/results.RData
