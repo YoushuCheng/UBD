@@ -52,9 +52,9 @@ CTS = oc$CTS2
 
 ## Downstream analysis
 Potential downstream analysis can be performed using `CTS`:
-- Differential analysis to identify CTS differentially expressed (DE) genes or differentially methylated (DM) CpGs 
-- Quantitative trait locus (QTLs) analysis to identify CTS expression QTLs (eQTLs) or methylation QTLs (meQTLs)
-- Co-expression or Co-methylation inference to investigate the gene-gene or CpG-CpG interactions
+- Differential analysis to identify CTS differentially expressed (DE) genes or differentially methylated (DM) CpGs. 
+- Quantitative trait locus (QTLs) analysis to identify CTS expression QTLs (eQTLs) or methylation QTLs (meQTLs).
+- Co-expression or Co-methylation inference to investigate the gene-gene or CpG-CpG interactions.
 - ...
 
 
