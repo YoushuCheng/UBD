@@ -42,3 +42,12 @@ Rscript UBD_refineW.R bulkM.RData bp.res.RData ./result \
 ref_file=alpha_hat.RData 
 ```
 
+### Extract results
+To extract the deconvoluted sample-level CTS data from the output of `UBD_refineW.R `:
+```
+oc = get(load('/Mypath/result.RData'))
+CTS = oc$CTS2
+```
+`CTS` is an array in the dimension of `N x P x K`, where 
+
+### Downstream analysis
