@@ -50,10 +50,11 @@ CTS = oc$CTS2
 ```
 `CTS` is an array in the dimension of `N`x`P`x`K`, where `N` is the number of samples/individuals, `P` is the number of genes/CpGs and `K` is the number of cell types. 
 
-### Downstream analysis
+## Downstream analysis
 Potential downstream analysis can be performed using `CTS`:
-- aaa
-- bbb
-- ccc
+- Differential analysis to identify CTS differentially expressed (DE) genes or differentially methylated (DM) CpGs 
+- Quantitative trait locus (QTLs) analysis to identify CTS expression QTLs (eQTLs) or methylation QTLs (meQTLs)
+- Co-expression or Co-methylation inference to investigate the gene-gene or CpG-CpG interactions
+- ...
 
 
