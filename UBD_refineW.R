@@ -39,18 +39,18 @@ colnames(V_w2) = colnames(mu_w)
 ############################### default arguments (optional)
 ref_file <- gsub(x = args[grep(x = args, pattern = "ref_file=")], pattern = "ref_file=", replacement = "")
 scale_MH <- gsub(x = args[grep(x = args, pattern = "scale_MH=")], pattern = "scale_MH=", replacement = "")
+target_coverage <- gsub(x = args[grep(x = args, pattern = "target_coverage=")], pattern = "target_coverage=", replacement = "")
 
 if (length(ref_file) == 0) {
   alpha_hat <- NULL
 } else {
   alpha_hat <- get(load(ref_file))  
-  
   dim(alpha_hat)
   #[1] 200 5
   head(alpha_hat)
 }
 scale_MH = ifelse(length(scale_MH)==0, 200, as.numeric(scale_MH))
-
+target_coverage = ifelse(length(target_coverage)==0, 0.9, as.numeric(target_coverage))
 
 N = nrow(mu_w)
 #see dimensions
@@ -62,27 +62,31 @@ dim(V_w2)
 #[1] 100   3
 
 ############################### determine scale_prior
-#function to calculate the standard deviation for a Dirichlet distribution
-D_sd <- function(alpha) {
+#function to calculate the width of each 99% CI for a Dirichlet distribution
+Width_CI <- function(alpha) {
   # Calculate the sum of the parameters
   alpha_0 <- sum(alpha)
-  # Calculate the variance of each component
-  variance <- alpha * (alpha_0 - alpha) / (alpha_0^2 * (alpha_0 + 1))
-  # Return standard deviation
-  return(sqrt(variance))
+  # Using the Beta approximation for each component
+  # The marginal distribution of component i is Beta(alpha_i, sum(alphas) - alpha_i)
+  ci_lower <- qbeta(0.005, shape1 = alpha, shape2 = alpha_0 - alpha)
+  ci_upper <- qbeta(0.995, shape1 = alpha, shape2 = alpha_0 - alpha)
+  # Calculate the width of each CI
+  ci_widths <- ci_upper - ci_lower
+  
+  return(ci_widths)
 }
 
-objective_function <- function(scalar, V_w2_matrix, target_sd) {
+objective_function <- function(scalar, V_w2_matrix, target_coverage) {
   # Scale the input matrix
   V_w2_scaled <- scalar * V_w2_matrix
-  sd_matrix <- t(apply(V_w2_scaled, 1, D_sd))
-  current_mean_sd <- mean(colMeans(sd_matrix))
+  width_matrix <- t(apply(V_w2_scaled, 1, Width_CI))
+  current_mean_width <- mean(colMeans(width_matrix))
   
   # Return the difference from the target.
-  return(current_mean_sd - target_sd)
+  return(current_mean_width - target_coverage)
 }
 
-optim_result <- uniroot(f = objective_function,interval = c(1e-6, 1),V_w2_matrix = V_w2,target_sd = 0.22)
+optim_result <- uniroot(f = objective_function,interval = c(1e-6, 1),V_w2_matrix = V_w2,target_coverage = target_coverage)
 scale_prior <- optim_result$root
 cat("scale_prior found:", scale_prior, "\n")
 
