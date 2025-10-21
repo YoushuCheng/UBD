@@ -9,7 +9,7 @@ Incorporating uncertainty in cell type proportion estimates from bulk samples to
 ### To get the cell-type-specific profiles from bulk profiles given cell type proportion estimates (from BayesPrism), please run 
 ```
 Rscript UBD_refineW.R [file for bulk expression/DNA methylation] [file for BayesPrism output] [path for outputs] \
-ref_file=[reference file from signature matrix]
+ref_file=[reference file from signature matrix] target_coverage=0.9
 ```
 - **file for bulk expression/DNA methylation:** This is the bulk expression/DNA methylation matrix. Each row represents an individual and each column represents one gene or one CpG site.
 ```
@@ -24,7 +24,7 @@ sample6  2.808944 1.1204922 2.3739149 2.719597 3.417008
 ```
 - **file for BayesPrism output:** This is the direct output from BayesPrism, which contains information on sample-level cell type proportion estimates and uncertainty (Chu, T., Wang, Z., Pe’er, D. et al. Cell type and gene expression deconvolution with BayesPrism enables Bayesian integrative analysis across bulk and single-cell RNA sequencing in oncology. *Nat Cancer* 3, 505–517 (2022). https://doi.org/10.1038/s43018-022-00356-3)
 - **path for outputs:** For example, `/Mypath/result`.
-- **Optional arguments:** `scale_MH` specifies the proposal scaling in Metropolis-Hastings (MH). It adjusts the size (scale) of the proposal distribution's steps and also controls the acceptance rate. The default value is `scale_MH=200`. `ref_file` specifies the average cell-type-specific (CTS) expression or methylation, which can be calculated from a reference CTS data (e.g., scRNA-seq for gene expression, cell-sorted Methyl-seq for DNA methylation). We strongly recommend to use such reference data and provide the average CTS expression or methylation in `ref_file`. If no reference information is available, we will estimate it within the UBD algorithm. In `ref_file`, each row corresponds to one gene/CpG site and each column corresponds to one cell type.
+- **Optional arguments:** `ref_file` specifies the average cell-type-specific (CTS) expression or methylation, which can be calculated from a reference CTS data (e.g., scRNA-seq for gene expression, cell-sorted Methyl-seq for DNA methylation). We strongly recommend to use such reference data and provide the average CTS expression or methylation in `ref_file`. If no reference information is available, we will estimate it within the UBD algorithm. In `ref_file`, each row corresponds to one gene/CpG site and each column corresponds to one cell type. `scale_MH` specifies the proposal scaling in Metropolis-Hastings (MH). It adjusts the size (scale) of the proposal distribution's steps and also controls the acceptance rate. The default value is `scale_MH=200`. `target_coverage` specifies the desired width of the credible interval for the scaled distribution of cell type proportions, as a proportion of the range [0,1] (e.g., 0.90). The default value is `target_coverage=0.9`.
 ```
             CT1      CT2      CT3
 gene1 3.4560016 2.672303 3.360823
