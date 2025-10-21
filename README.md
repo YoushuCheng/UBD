@@ -1,6 +1,10 @@
 # UBD
 Incorporating uncertainty in cell type proportion estimates from bulk samples to infer cell-type-specific profiles
 
+## Overview
+<img src="img/UBD.png">
+
+
 ## Tutorial
 ### To get the cell-type-specific profiles from bulk profiles given cell type proportion estimates (from BayesPrism), please run 
 ```
