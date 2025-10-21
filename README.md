@@ -48,6 +48,6 @@ To extract the deconvoluted sample-level CTS data from the output of `UBD_refine
 oc = get(load('/Mypath/result.RData'))
 CTS = oc$CTS2
 ```
-`CTS` is an array in the dimension of `N \cdot P x K`, where 
+`CTS` is an array in the dimension of `N`x`P`x`K`, where 
 
 ### Downstream analysis
