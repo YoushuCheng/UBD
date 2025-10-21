@@ -48,6 +48,12 @@ To extract the deconvoluted sample-level CTS data from the output of `UBD_refine
 oc = get(load('/Mypath/result.RData'))
 CTS = oc$CTS2
 ```
-`CTS` is an array in the dimension of `N`x`P`x`K`, where 
+`CTS` is an array in the dimension of `N`x`P`x`K`, where `N` is the number of samples/individuals, `P` is the number of genes/CpGs and `K` is the number of cell types. 
 
 ### Downstream analysis
+Potential downstream analysis can be performed using `CTS`:
+- aaa
+- bbb
+- ccc
+
+
