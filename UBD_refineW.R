@@ -225,7 +225,7 @@ CTS <- function(x, mu_w, V_w,
         if (hasArg("c2")) {t(w[i, , kk]) %*% gamma[j, , , kk] %*% c2[i, ]}
         
         u <- c(x[i, j] - t1 - t2) / sigma2[j, kk] * w[i, , kk] + sinv(Sigma[j, , , kk]) %*% alpha[j, , kk]
-        a[i, j, , kk + 1] <- mvrnorm(n = 1, mu = V %*% u, Sigma = V)
+        a[i, j, , kk + 1] <- mvrnorm(n = 1, mu = V %*% u, Sigma = V) ### output
       }
     }
     ################ end of 1st parallel  #########
@@ -249,8 +249,8 @@ CTS <- function(x, mu_w, V_w,
       ratio <- exp(top_h + top_q - bottom_h - bottom_q)
       
       if(ratio >= runif(n=1, min=0, max=1)){
-        w[i, , kk + 1] <- w_proposed
-        accept_w[i] <- accept_w[i] + 1
+        w[i, , kk + 1] <- w_proposed   ### output
+        accept_w[i] <- accept_w[i] + 1  ### output
       }
       
       #print(i)
