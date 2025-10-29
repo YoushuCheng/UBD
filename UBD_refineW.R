@@ -214,6 +214,7 @@ CTS <- function(x, mu_w, V_w,
   for (kk in 1:(iter-1)){
     
     # update a_ij
+    ######### implement 1st parallel here #########
     for (i in 1:N){
       for (j in 1:P){
         V <- sinv(tcrossprod(w[i, , kk]) / sigma2[j, kk] + sinv(Sigma[j, , , kk]))
@@ -227,8 +228,10 @@ CTS <- function(x, mu_w, V_w,
         a[i, j, , kk + 1] <- mvrnorm(n = 1, mu = V %*% u, Sigma = V)
       }
     }
+    ################ end of 1st parallel  #########
     
-    # Update w_i
+    # Update w_i 
+    ######### implement 2nd parallel here #########
     for(i in 1:N){
       #propose a w using dirichlet 
       w_proposed <- DirichletReg::rdirichlet(n=1, mh_delta*as.vector(w[i, , kk]))
@@ -252,6 +255,7 @@ CTS <- function(x, mu_w, V_w,
       
       #print(i)
     }
+    ################ end of 2nd parallel  #########
 
     
     
