@@ -283,5 +283,3 @@ dim(CTS2)
 
 oc = list(CTS2 = CTS2, w_iter = w)
 save(oc, file  = paste0(output_file,'.RData'))
-
-
