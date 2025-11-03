@@ -1,17 +1,28 @@
+args = commandArgs(trailingOnly=TRUE)
 library(MASS)
 library(data.table)
 library(LaplacesDemon)
-library(tmvtnorm)
-library(tmvnsim)
 library(DirichletReg)
 library(BayesPrism)
 library(dplyr)
 options(stringsAsFactors=F)
-args = commandArgs(trailingOnly=TRUE)
+library(doRNG) 
+library(progressr)
+handlers(global = TRUE)
+handlers("txtprogressbar")
+library(doFuture)
+registerDoFuture()
 
 bulkM_file = args[1]
 bp.res_file = args[2]
 output_file  = args[3]
+num_threads = as.numeric(args[4])
+
+
+#reference document about doFuture: https://cran.r-project.org/web/packages/doFuture/vignettes/doFuture-2-dopar.html
+plan(multicore, workers = num_threads)
+options(future.globals.maxSize = 1000 * 1024^3)  # 1000 GB
+
 
 ############################### read data
 bulkM <- get(load(bulkM_file))
@@ -100,13 +111,13 @@ sinv <- function(A){
 
 
 #h function in MH, log(liklihood) + log(dirichlet prior)
-log_h_N<-function(weight, P, a, sigma2, x, mu_w, V_w, i, kk, beta, gamma, c1, c2){
+log_h_N<-function(weight, P, a_i, sigma2, x, mu_w, V_w, i, kk, beta, gamma, c1=NULL, c2=NULL){
   #print(kk)
   log_lik = 0
   for (j in 1:P){
-    this_mu = t(weight) %*% a[i, j, , kk + 1]
-    if (hasArg("c1")) {this_mu <- this_mu + crossprod(c1[i, ], beta[j, , kk])}
-    if (hasArg("c2")) {this_mu <- this_mu + t(weight) %*% gamma[j, , , kk] %*% c2[i, ]}
+    this_mu = t(weight) %*% a_i[j, ]
+    if (!is.null(c1)) {this_mu <- this_mu + crossprod(c1[i, ], beta[j, , kk])}
+    if (!is.null(c2)) {this_mu <- this_mu + t(weight) %*% gamma[j, , , kk] %*% c2[i, ]}
     
     this_log_lik = dnorm(x[i, j], mean=this_mu, sd=sqrt(sigma2[j, kk]), log=TRUE)
     log_lik = log_lik + this_log_lik
@@ -121,7 +132,7 @@ log_h_N<-function(weight, P, a, sigma2, x, mu_w, V_w, i, kk, beta, gamma, c1, c2
 CTS <- function(x, mu_w, V_w,
                 alpha_hat = NULL, v_alpha = 0.5,
                 Sigma_hat = NULL, v_Sigma = 50,
-                c1, c2, 
+                c1=NULL, c2=NULL, 
                 mh_delta = 10, 
                 iter = 1000){
   # sample N, probe P, cell type K.
@@ -143,8 +154,8 @@ CTS <- function(x, mu_w, V_w,
   N = nrow(x)
   P = ncol(x)
   K = ncol(mu_w)
-  if (hasArg("c1")) {T1 = ncol(c1)}
-  if (hasArg("c2")) {T2 = ncol(c2)}
+  if (!is.null(c1)) {T1 = ncol(c1)}
+  if (!is.null(c2)) {T2 = ncol(c2)}
   
   #update alpha_hat and Sigma_hat if not provided
   X_bM = t(x)
@@ -167,8 +178,8 @@ CTS <- function(x, mu_w, V_w,
   # Seven parameters in the model.
   a = array(NA, dim = c(N, P, K, iter))
   w = array(NA, dim = c(N, K, iter))
-  if (hasArg("c1")) {beta = array(NA, dim = c(P, T1, iter))}
-  if (hasArg("c2")) {gamma = array(NA, dim = c(P, K, T2, iter))}
+  if (!is.null(c1)) {beta = array(NA, dim = c(P, T1, iter))}
+  if (!is.null(c2)) {gamma = array(NA, dim = c(P, K, T2, iter))}
   sigma2 = array(NA, dim = c(P, iter))
   alpha = array(NA, dim = c(P, K, iter))
   Sigma = array(NA, dim = c(P, K, K, iter))
@@ -193,11 +204,11 @@ CTS <- function(x, mu_w, V_w,
   w[, , 1] <- mu_w
   
   # beta_j
-  if (hasArg("c1")) {
+  if (!is.null(c1)) {
     beta[, , 1] <- matrix(0, P, T1) #mvrnorm(n = P, mu = rep(0, T1), Sigma = diag(rep(1, T1)))
   }
   # gamma_jk
-  if (hasArg("c2")) {
+  if (!is.null(c2)) {
     for (k in 1:K){
       gamma[, k, , 1] <- matrix(0, P, T2) #mvrnorm(n = P, mu = rep(0, T2), Sigma = diag(rep(1, T2)))
     }
@@ -213,50 +224,75 @@ CTS <- function(x, mu_w, V_w,
   # Gibbs sampling
   for (kk in 1:(iter-1)){
     
-    # update a_ij
-    ######### implement 1st parallel here #########
-    for (i in 1:N){
-      for (j in 1:P){
-        V <- sinv(tcrossprod(w[i, , kk]) / sigma2[j, kk] + sinv(Sigma[j, , , kk]))
-        
-        t1 <- 0
-        t2 <- 0
-        if (hasArg("c1")) { t1 <- crossprod(c1[i, ], beta[j, , kk])}
-        if (hasArg("c2")) {t(w[i, , kk]) %*% gamma[j, , , kk] %*% c2[i, ]}
-        
-        u <- c(x[i, j] - t1 - t2) / sigma2[j, kk] * w[i, , kk] + sinv(Sigma[j, , , kk]) %*% alpha[j, , kk]
-        a[i, j, , kk + 1] <- mvrnorm(n = 1, mu = V %*% u, Sigma = V) ### output
-      }
+    ######### start of the parallel here #########
+    update_aw_parallel <- function() {
+      
+      prgrs <- progressor(steps = N)
+      res_list <- foreach(i = 1:N,
+                          .options.future = list(seed = F),
+                          .packages = c("DirichletReg")) %dorng% {
+                            # call progressor inside each future
+                            prgrs()
+                            
+                            # update a_i
+                            # Each worker returns one slice a[i, , , kk + 1]
+                            a_i <- array(NA, dim = c(P, K))  # store local results
+                            
+                            for (j in 1:P) {
+                              V <- sinv(tcrossprod(w[i, , kk]) / sigma2[j, kk] + sinv(Sigma[j, , , kk]))
+                              
+                              t1 <- 0
+                              t2 <- 0
+                              if (!is.null(c1)) t1 <- crossprod(c1[i, ], beta[j, , kk])
+                              if (!is.null(c2)) t2 <- t(w[i, , kk]) %*% gamma[j, , , kk] %*% c2[i, ]
+                              
+                              u <- c(x[i, j] - t1 - t2) / sigma2[j, kk] * w[i, , kk] + sinv(Sigma[j, , , kk]) %*% alpha[j, , kk]
+                              
+                              a_i[j, ] <- mvrnorm(n = 1, mu = V %*% u, Sigma = V)
+                            }
+                            
+                            # update w_i
+                            w_current <- as.vector(w[i, , kk])
+                            w_new <- w_current
+                            accept <- 0L
+                            
+                            # propose a w using dirichlet
+                            w_proposed <- DirichletReg::rdirichlet(n = 1, mh_delta * w_current)
+                            w_proposed <- as.vector(w_proposed)
+                            
+                            # avoid zeros in w_proposed
+                            eps <- 1e-20
+                            w_proposed[w_proposed == 0] <- eps
+                            # Normalize to ensure that the sum is 1
+                            w_proposed <- w_proposed / sum(w_proposed)
+                            
+                            
+                            top_h    <- log_h_N(w_proposed, P, a_i, sigma2, x, mu_w, V_w, i, kk)
+                            bottom_h <- log_h_N(w_current,  P, a_i, sigma2, x, mu_w, V_w, i, kk)
+                            top_q    <- DirichletReg::ddirichlet(matrix(w_current, nrow = 1),
+                                                                 mh_delta * w_proposed, log = TRUE)
+                            bottom_q <- DirichletReg::ddirichlet(matrix(w_proposed, nrow = 1),
+                                                                 mh_delta * w_current, log = TRUE)
+                            
+                            ratio <- exp(top_h + top_q - bottom_h - bottom_q)
+                            if (ratio >= runif(n=1, min=0, max=1)) {
+                              w_new <- w_proposed
+                              accept <- 1L
+                            }
+                            
+                            list(a_i = a_i, w = w_new, accept = accept)
+                          } 
+      
     }
-    ################ end of 1st parallel  #########
+    res_list <- update_aw_parallel()
     
-    # Update w_i 
-    ######### implement 2nd parallel here #########
-    for(i in 1:N){
-      #propose a w using dirichlet 
-      w_proposed <- DirichletReg::rdirichlet(n=1, mh_delta*as.vector(w[i, , kk]))
-      w[i, , kk + 1] <- w[i, , kk]
-      #avoid 0 in w_proposed
-      epsilon <- 1e-20
-      w_proposed[w_proposed  == 0] <- epsilon
-      # Normalize to ensure that the sum is 1
-      w_proposed <- w_proposed / sum(w_proposed)
-      
-      top_h <- log_h_N(as.vector(w_proposed), P, a, sigma2, x, mu_w, V_w, i, kk)
-      bottom_h <- log_h_N(as.vector(w[i, , kk]), P, a, sigma2, x, mu_w, V_w, i, kk)
-      top_q <- DirichletReg::ddirichlet(matrix(w[i, , kk], nrow = 1), mh_delta*as.vector(w_proposed), log = T)
-      bottom_q <- DirichletReg::ddirichlet(w_proposed, mh_delta*as.vector(w[i, , kk]), log = T)
-      ratio <- exp(top_h + top_q - bottom_h - bottom_q)
-      
-      if(ratio >= runif(n=1, min=0, max=1)){
-        w[i, , kk + 1] <- w_proposed   ### output
-        accept_w[i] <- accept_w[i] + 1  ### output
-      }
-      
-      #print(i)
+    # Combine all parallel outputs into the final array
+    for (i in 1:N) {
+      a[i, , , kk + 1] <- res_list[[i]]$a_i
+      w[i, , kk + 1] <- res_list[[i]]$w
+      accept_w[i]    <- accept_w[i] + res_list[[i]]$accept
     }
-    ################ end of 2nd parallel  #########
-
+    ################ end of the parallel  #########
     
     
     # update alpha_j
@@ -277,14 +313,14 @@ CTS <- function(x, mu_w, V_w,
     # lm
     for (j in 1:P){
       y <- x[, j] - rowSums(w[, , kk + 1] * a[, j, , kk + 1])
-      if (hasArg("c1")) { X <- c1[, ]}
-      if (hasArg("c2")) {
+      if (!is.null(c1)) { X <- c1[, ]}
+      if (!is.null(c2)) {
         for (k in 1:K){
           X <- cbind(X, c2[, ] * w[, k, kk + 1])
         }
       }
       
-      if ((!hasArg("c1")) & (!hasArg("c2"))) {
+      if ((!!is.null(c1)) & (!!is.null(c2))) {
         sigma2[j, kk + 1] <- rinvwishart(N, 1 + sum(y^2))
       } else{
         f1 <- lm(y ~ X + 0)
@@ -292,9 +328,9 @@ CTS <- function(x, mu_w, V_w,
         V <- vcov(f1) / sigma(f1)^2 * sigma2[j, kk]
         temp <- mvrnorm(n = 1, mu = u, Sigma = V)
         
-        if (hasArg("c1")) {
+        if (!is.null(c1)) {
           beta[j, , kk + 1] <- temp[1:T1]
-          if (hasArg("c2")) {
+          if (!is.null(c2)) {
             for (k in 1:K){
               gamma[j, k, , kk + 1] <- temp[(T1 + k * T2 + 1 - T2):(T1 + k * T2)]
             }
@@ -335,9 +371,19 @@ dim(a)
 quantile(res$accept_w/3000)
 
 
-CTS2 <- apply(a[, , ,1000:3000], c(1, 2, 3), mean)
+idx = 1000:3000
+#CTS1 <- apply(a[, , ,idx], c(1, 2, 3), mean) 
+dims_out <- dim(a)[1:3]
+#Reshape 'a' into a 2D matrix where the 4th dimension becomes columns
+a_matrix <- matrix(a, nrow = prod(dims_out), ncol = dim(a)[4])
+mean_vec <- rowMeans(a_matrix[, idx])
+#Reshape the resulting vector back into a 3D array
+CTS2 <- array(mean_vec, dim = dims_out)
+
+# all.equal(CTS1, CTS2)
+
+
 dim(CTS2)
-#[1]  100   200         3
 #  sample  gene        CT  
 
 
