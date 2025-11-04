@@ -6,7 +6,7 @@ Incorporating uncertainty in cell type proportion estimates from bulk samples to
 
 
 ## Tutorial
-### To get the cell-type-specific profiles from bulk profiles given cell type proportion estimates (from BayesPrism), please run 
+### Use UBD to get the cell-type-specific profiles from bulk profiles given cell type proportion estimates (from BayesPrism), please run 
 ```
 Rscript UBD_refineW.R [file for bulk expression/DNA methylation] [file for BayesPrism output] [path for outputs] [number of threads]\
 ref_file=[reference file from signature matrix] target_coverage=0.9
@@ -39,9 +39,16 @@ gene6 1.6620560 1.144611 1.520568
 
 Using the example inputs, a typical run is like
 ```
-Rscript UBD_refineW.R bulkM.RData bp.res.RData ./result 5 \
+Rscript UBD_refineW.R bulkM.RData bp.res.RData ./UBD_result 5 \
 ref_file=alpha_hat.RData 
 ```
+
+To use the version that ignores uncertainty in cell type proportion estimates, please use
+```
+Rscript EstimatedCT_fixed.R bulkM.RData bp.res.RData ./result 5 \
+ref_file=alpha_hat.RData 
+```
+- This algorithm is implemented using the Bayesian framework specified in bMIND (Wang, J., Roeder, K. & Devlin, B. Bayesian estimation of cell type-specific gene expression with prior derived from single-cell data. *Genome Res* 31, 1807-1818 (2021). https://doi.org/10.1101/gr.268722.120)
 
 ### Extract results
 To extract the deconvoluted sample-level CTS data from the output of `UBD_refineW.R `:
