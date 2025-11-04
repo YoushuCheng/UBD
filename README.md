@@ -37,7 +37,7 @@ gene6 1.6620560 1.144611 1.520568
 ...
 ```
 
-Using the example inputs, a typical run is like
+Using the example inputs, a typical run for UBD is like
 ```
 Rscript UBD_refineW.R bulkM.RData bp.res.RData ./UBD_result 5 \
 ref_file=alpha_hat.RData 
