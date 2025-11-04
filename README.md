@@ -48,7 +48,7 @@ To use the version that ignores uncertainty in cell type proportion estimates, p
 Rscript EstimatedCT_fixed.R bulkM.RData bp.res.RData ./result 5 \
 ref_file=alpha_hat.RData 
 ```
-- This algorithm is implemented using the Bayesian framework specified in bMIND (Wang, J., Roeder, K. & Devlin, B. Bayesian estimation of cell type-specific gene expression with prior derived from single-cell data. *Genome Res* 31, 1807-1818 (2021). https://doi.org/10.1101/gr.268722.120)
+- This version is implemented using the Bayesian framework specified in bMIND (Wang, J., Roeder, K. & Devlin, B. Bayesian estimation of cell type-specific gene expression with prior derived from single-cell data. *Genome Res* 31, 1807-1818 (2021). https://doi.org/10.1101/gr.268722.120)
 
 ### Extract results
 To extract the deconvoluted sample-level CTS data from the output of `UBD_refineW.R `:
