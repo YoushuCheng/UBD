@@ -1,7 +1,7 @@
 Using the test data (bulkM.RData, bp.res.RData, alpha_hat.RData) in the inputs_example folder, a typical run is like:
 
 
-Rscript UBD_refineW.R bulkM.RData bp.res.RData /Mypath/results \
+Rscript UBD_refineW.R bulkM.RData bp.res.RData /Mypath/results 5 \
 ref_file=alpha_hat.RData
 
 
